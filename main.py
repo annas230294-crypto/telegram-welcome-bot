@@ -1,19 +1,18 @@
 import os
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from telegram.error import Conflict  # ← ДОБАВИТЬ
+from telegram.error import Conflict
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
-# ↓ ДОБАВИТЬ ОБРАБОТЧИК ОШИБОК ↓
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if isinstance(context.error, Conflict):
         print("Обнаружен конфликт - вероятно, бот запущен в двух местах")
     else:
         print(f'Ошибка: {context.error}')
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):  # ← ДОБАВИТЬ async
-    await update.message.reply_text("Бот работает! 💍")  # ← ДОБАВИТЬ await
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Бот работает! 💍")
 
 # Простой HTTP сервер для порта
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -23,6 +22,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"Bot is running!")
+    
     def log_message(self, format, *args):
         pass  # Отключаем логи
 
@@ -42,16 +42,7 @@ if __name__ == "__main__":
     # Запускаем бота
     bot = Application.builder().token(BOT_TOKEN).build()
     bot.add_handler(CommandHandler("start", start))
-    
-    # ↓ ДОБАВИТЬ ОБРАБОТЧИК ОШИБОК ↓
     bot.add_error_handler(error_handler)
-    
-    # Принудительно очищаем webhook перед запуском
-await bot.bot.delete_webhook(drop_pending_updates=True)
-print("Webhook очищен перед запуском")
-
-print("Бот запущен!")
-bot.run_polling() 
     
     print("Бот запущен!")
     bot.run_polling()
