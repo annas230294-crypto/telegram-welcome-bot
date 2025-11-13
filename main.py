@@ -3,19 +3,11 @@ import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from telegram.error import Conflict
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
-async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if isinstance(context.error, Conflict):
-        print("Обнаружен конфликт - вероятно, бот запущен в двух местах")
-    else:
-        print(f'Ошибка: {context.error}')
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_name = update.message.from_user.first_name
-    
     welcome_text = f"""
 🎨 <b>Привет, {user_name}!</b>
 
@@ -55,10 +47,10 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 def run_web():
-    port = int(os.environ.get('PORT', 5000))
+    # ВАЖНО: Берем порт из переменной окружения Render
+    port = int(os.environ.get('PORT', 10000))
     server = HTTPServer(('0.0.0.0', port), Handler)
     print(f"✅ Web server started on port {port}")
-    print(f"✅ URL: https://telegram-welcome-bot-u9jd.onrender.com")
     server.serve_forever()
 
 if __name__ == "__main__":
@@ -74,8 +66,6 @@ if __name__ == "__main__":
         print("🤖 Starting Telegram bot...")
         bot = Application.builder().token(BOT_TOKEN).build()
         bot.add_handler(CommandHandler("start", start))
-        bot.add_error_handler(error_handler)
-
         print("✅ Bot is running!")
         bot.run_polling()
     except Exception as e:
