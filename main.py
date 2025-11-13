@@ -1,10 +1,8 @@
 import os
 import time
 import asyncio
-import threading
 from flask import Flask, jsonify
 from telegram.ext import Application, CommandHandler
-from telegram.error import Conflict
 import urllib.request
 
 app = Flask(__name__)
@@ -54,7 +52,7 @@ async def start(update, context):
     await update.message.reply_text(welcome_text, parse_mode='HTML')
     print(f"✅ Отправлено приветствие пользователю: {user_name}")
 
-# Добавляем обработчик ДО запуска
+# Добавляем обработчик
 bot_app.add_handler(CommandHandler("start", start))
 
 # Функция авто-пинга
@@ -67,29 +65,39 @@ def auto_ping():
             print(f"❌ Ошибка авто-пинга: {e}")
         time.sleep(300)  # 5 минут
 
-# Функция запуска бота
+# Функция запуска бота в отдельном потоке с event loop
 def run_bot():
-    print("🤖 Запускаем поллинг бота...")
+    print("🤖 Создаем event loop для бота...")
+    
+    # Создаем новый event loop для этого потока
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
     try:
+        print("🤖 Запускаем поллинг бота...")
         bot_app.run_polling(
             drop_pending_updates=True,
-            allowed_updates=['message', 'callback_query']
+            allowed_updates=['message']
         )
-    except Conflict as e:
-        print(f"❌ Конфликт: {e}")
-        print("🔄 Перезапуск через 30 секунд...")
-        time.sleep(30)
-        run_bot()
     except Exception as e:
         print(f"❌ Ошибка бота: {e}")
-        print("🔄 Перезапуск через 10 секунд...")
-        time.sleep(10)
+        print("🔄 Перезапуск через 30 секунд...")
+        time.sleep(30)
         run_bot()
 
 @app.route('/bot-health')
 def bot_health():
     try:
-        bot_info = bot_app.bot.get_me()
+        # Используем asyncio для асинхронного вызова
+        async def get_bot_info():
+            return await bot_app.bot.get_me()
+        
+        # Запускаем в event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        bot_info = loop.run_until_complete(get_bot_info())
+        loop.close()
+        
         return jsonify({
             "status": "healthy",
             "bot_name": bot_info.first_name,
@@ -113,17 +121,12 @@ if __name__ == "__main__":
     
     print("✅ Токен загружен")
     
-    # Запускаем авто-пинг
+    # Запускаем авто-пинг в отдельном потоке
+    import threading
     ping_thread = threading.Thread(target=auto_ping, daemon=True)
     ping_thread.start()
     print("🔔 Авто-пинг запущен")
     
-    # Запускаем бота в ОСНОВНОМ потоке
-    print("🤖 ЗАПУСКАЕМ БОТА...")
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    
-    # Запускаем Flask
-    port = int(os.environ.get('PORT', 10000))
-    print(f"🌐 Flask запускается на порту {port}")
-    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+    # Запускаем бота в ОСНОВНОМ потоке (без threading)
+    print("🤖 ЗАПУСКАЕМ БОТА В ОСНОВНОМ ПОТОКЕ...")
+    run_bot()
