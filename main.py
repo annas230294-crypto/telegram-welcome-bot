@@ -1,11 +1,6 @@
 import os
 import time
-import asyncio
-from flask import Flask, jsonify
 from telegram.ext import Application, CommandHandler
-import urllib.request
-
-app = Flask(__name__)
 
 # Получаем токен
 def get_bot_token():
@@ -16,11 +11,16 @@ def get_bot_token():
         return os.getenv('BOT_TOKEN')
 
 BOT_TOKEN = get_bot_token()
-RENDER_URL = "https://telegram-bot-new-9ymy.onrender.com"
 
+print("=" * 50)
+print("🚀 ЗАПУСК ТЕЛЕГРАМ БОТА")
 print(f"🔑 Токен: {'***' + BOT_TOKEN[-4:] if BOT_TOKEN else 'НЕ НАЙДЕН'}")
 
-# Создаем бота
+if not BOT_TOKEN:
+    print("❌ КРИТИЧЕСКАЯ ОШИБКА: Токен не найден!")
+    exit(1)
+
+# Создаем и настраиваем бота
 bot_app = Application.builder().token(BOT_TOKEN).build()
 
 async def start(update, context):
@@ -55,78 +55,11 @@ async def start(update, context):
 # Добавляем обработчик
 bot_app.add_handler(CommandHandler("start", start))
 
-# Функция авто-пинга
-def auto_ping():
-    while True:
-        try:
-            with urllib.request.urlopen(RENDER_URL, timeout=10) as response:
-                print(f"✅ Авто-пинг: {response.getcode()} - {time.strftime('%H:%M:%S')}")
-        except Exception as e:
-            print(f"❌ Ошибка авто-пинга: {e}")
-        time.sleep(300)  # 5 минут
-
-# Функция запуска бота в отдельном потоке с event loop
-def run_bot():
-    print("🤖 Создаем event loop для бота...")
-    
-    # Создаем новый event loop для этого потока
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
-    try:
-        print("🤖 Запускаем поллинг бота...")
-        bot_app.run_polling(
-            drop_pending_updates=True,
-            allowed_updates=['message']
-        )
-    except Exception as e:
-        print(f"❌ Ошибка бота: {e}")
-        print("🔄 Перезапуск через 30 секунд...")
-        time.sleep(30)
-        run_bot()
-
-@app.route('/bot-health')
-def bot_health():
-    try:
-        # Используем asyncio для асинхронного вызова
-        async def get_bot_info():
-            return await bot_app.bot.get_me()
-        
-        # Запускаем в event loop
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        bot_info = loop.run_until_complete(get_bot_info())
-        loop.close()
-        
-        return jsonify({
-            "status": "healthy",
-            "bot_name": bot_info.first_name,
-            "bot_username": bot_info.username,
-            "message": "✅ Бот работает и принимает сообщения"
-        }), 200
-    except Exception as e:
-        return jsonify({"status": "error", "error": str(e)}), 500
-
-@app.route('/')
-def home():
-    return "🤖 Бот активен - используйте /start в Telegram"
+print("✅ Бот настроен, запускаем поллинг...")
 
 if __name__ == "__main__":
-    print("=" * 50)
-    print("🚀 ЗАПУСК СИСТЕМЫ")
-    
-    if not BOT_TOKEN:
-        print("❌ КРИТИЧЕСКАЯ ОШИБКА: Токен не найден!")
-        exit(1)
-    
-    print("✅ Токен загружен")
-    
-    # Запускаем авто-пинг в отдельном потоке
-    import threading
-    ping_thread = threading.Thread(target=auto_ping, daemon=True)
-    ping_thread.start()
-    print("🔔 Авто-пинг запущен")
-    
-    # Запускаем бота в ОСНОВНОМ потоке (без threading)
-    print("🤖 ЗАПУСКАЕМ БОТА В ОСНОВНОМ ПОТОКЕ...")
-    run_bot()
+    # Просто запускаем бота
+    bot_app.run_polling(
+        drop_pending_updates=True,
+        allowed_updates=['message']
+    )
