@@ -1,72 +1,45 @@
 import os
+from flask import Flask
 import threading
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Application, CommandHandler
 
+app = Flask(__name__)
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# Создаем бота
+bot_app = Application.builder().token(BOT_TOKEN).build()
+
+async def start(update, context):
     user_name = update.message.from_user.first_name
     welcome_text = f"""
 🎨 <b>Привет, {user_name}!</b>
-
 Ты попал(а) в мир безграничного творчества с нейросетями! 
-
 🤖 Мой канал: @code_and_beauty
-
-✨ <b>Что тебя ждет внутри:</b>
-🔥 Готовые, бесплатные, кастомные промты для самых популярных нейросетей
-🚀 Бустерные промты для твоих шедевров в один клик
-💡 Трендовые стили: от аниме до гиперреализма
-🎯 Рабочие связки для сложных сцен и персонажей
-📈 Обзоры новых нейросетей и их возможностей
-👥 Сообщество единомышленников
-
-💫 <b>Подпишись и получи доступ к:</b>
-• Библиотеке из 500+ готовых промтов
-• Гайдам по созданию уникальных изображений
-• Ежедневным порциям вдохновения
-• Эксклюзивным материалам
-
-⚡ <b>Преврати простой текст в цифровое искусство вместе со мной!</b>
-
-✅ <b>Подпишись на канал и открой мир AI-творчества!</b>
     """
     await update.message.reply_text(welcome_text, parse_mode='HTML')
 
-# HTTP сервер для Render
-class Handler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
-        self.end_headers()
-        self.wfile.write(b"Bot is running and healthy!")
-    
-    def log_message(self, format, *args):
-        pass
+# Добавляем обработчик
+bot_app.add_handler(CommandHandler("start", start))
 
-def run_web():
-    # ВАЖНО: Берем порт из переменной окружения Render
-    port = int(os.environ.get('PORT', 10000))
-    server = HTTPServer(('0.0.0.0', port), Handler)
-    print(f"✅ Web server started on port {port}")
-    server.serve_forever()
+def run_bot():
+    print("🤖 Starting Telegram bot...")
+    bot_app.run_polling(drop_pending_updates=True)
+
+@app.route('/')
+def health_check():
+    return "✅ Bot is running and healthy!", 200
+
+@app.route('/health')
+def health():
+    """Простой endpoint для мониторинга"""
+    return "OK", 200
 
 if __name__ == "__main__":
-    print("🚀 Starting bot...")
+    # Запускаем бота в отдельном потоке
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
     
-    # Запускаем веб-сервер в отдельном потоке
-    web_thread = threading.Thread(target=run_web)
-    web_thread.daemon = True
-    web_thread.start()
-
-    # Запускаем бота
-    try:
-        print("🤖 Starting Telegram bot...")
-        bot = Application.builder().token(BOT_TOKEN).build()
-        bot.add_handler(CommandHandler("start", start))
-        print("✅ Bot is running!")
-        bot.run_polling()
-    except Exception as e:
-        print(f"❌ Bot error: {e}")
+    # Запускаем Flask сервер на правильном порту
+    port = int(os.environ.get('PORT', 10000))
+    print(f"🚀 Starting server on port {port}")
+    app.run(host='0.0.0.0', port=port, debug=False)
