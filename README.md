@@ -1,2 +1,3 @@
-# telegram-welcome-bot
-Мой Telegram бот для приветствия 
+python-telegram-bot==20.0
+python-dotenv==1.0.0
+flask==2.3.3
