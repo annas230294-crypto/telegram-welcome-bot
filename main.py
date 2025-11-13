@@ -1,5 +1,4 @@
 import os
-import time
 from telegram.ext import Application, CommandHandler
 
 # Получаем токен
