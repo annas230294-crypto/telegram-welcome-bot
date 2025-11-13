@@ -46,5 +46,12 @@ if __name__ == "__main__":
     # ↓ ДОБАВИТЬ ОБРАБОТЧИК ОШИБОК ↓
     bot.add_error_handler(error_handler)
     
+    # Принудительно очищаем webhook перед запуском
+await bot.bot.delete_webhook(drop_pending_updates=True)
+print("Webhook очищен перед запуском")
+
+print("Бот запущен!")
+bot.run_polling() 
+    
     print("Бот запущен!")
     bot.run_polling()
