@@ -16,7 +16,6 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_name = update.message.from_user.first_name
     
-    # ОБНОВЛЕННОЕ ПРИВЕТСТВЕННОЕ СООБЩЕНИЕ
     welcome_text = f"""
 🎨 <b>Привет, {user_name}!</b>
 
@@ -44,7 +43,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     await update.message.reply_text(welcome_text, parse_mode='HTML')
 
-# Простой HTTP сервер для проверки работоспособности
+# HTTP сервер для Render
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -53,23 +52,31 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(b"Bot is running and healthy!")
     
     def log_message(self, format, *args):
-        pass  # Отключаем логи
+        pass
 
 def run_web():
-    server = HTTPServer(('0.0.0.0', 5000), Handler)
-    print("Web server started on port 5000")
+    port = int(os.environ.get('PORT', 5000))
+    server = HTTPServer(('0.0.0.0', port), Handler)
+    print(f"✅ Web server started on port {port}")
+    print(f"✅ URL: https://telegram-welcome-bot-u9jd.onrender.com")
     server.serve_forever()
 
 if __name__ == "__main__":
+    print("🚀 Starting bot...")
+    
     # Запускаем веб-сервер в отдельном потоке
     web_thread = threading.Thread(target=run_web)
     web_thread.daemon = True
     web_thread.start()
 
     # Запускаем бота
-    bot = Application.builder().token(BOT_TOKEN).build()
-    bot.add_handler(CommandHandler("start", start))
-    bot.add_error_handler(error_handler)
+    try:
+        print("🤖 Starting Telegram bot...")
+        bot = Application.builder().token(BOT_TOKEN).build()
+        bot.add_handler(CommandHandler("start", start))
+        bot.add_error_handler(error_handler)
 
-    print("Бот запущен!")
-    bot.run_polling()
+        print("✅ Bot is running!")
+        bot.run_polling()
+    except Exception as e:
+        print(f"❌ Bot error: {e}")
