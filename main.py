@@ -16,4 +16,4 @@ if __name__ == "__main__":
     bot = Application.builder().token(BOT_TOKEN).build()
     bot.add_handler(CommandHandler("start", start))
     bot.run_polling()
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000) 
