@@ -1,11 +1,10 @@
 import os
 import time
-import sys
 import threading
-import requests
 from flask import Flask, jsonify
 from telegram.ext import Application, CommandHandler
-from telegram.error import Conflict, TelegramError
+from telegram.error import Conflict
+import urllib.request
 
 app = Flask(__name__)
 
@@ -17,11 +16,15 @@ def get_bot_token():
     except FileNotFoundError:
         return os.getenv('BOT_TOKEN')
 
-BOT_TOKEN = get_bot_TOKEN()
-RENDER_URL = "https://telegram-bot-new-9ymy.onrender.com"  # Ваш URL
+BOT_TOKEN = get_bot_token()
+RENDER_URL = "https://telegram-bot-new-9ymy.onrender.com"
 
 # Создаем бота
-bot_app = Application.builder().token(BOT_TOKEN).build()
+if BOT_TOKEN:
+    bot_app = Application.builder().token(BOT_TOKEN).build()
+else:
+    bot_app = None
+    print("❌ Токен не найден!")
 
 async def start(update, context):
     user_name = update.message.from_user.first_name
@@ -51,87 +54,69 @@ async def start(update, context):
 
     await update.message.reply_text(welcome_text, parse_mode='HTML')
 
-# Добавляем обработчик
-bot_app.add_handler(CommandHandler("start", start))
-
-# 🔧 ФУНКЦИЯ АВТО-ПИНГА (чтобы бот не засыпал)
+# Функция авто-пинга
 def auto_ping():
-    """Пинг самого себя каждые 10 минут"""
     while True:
         try:
-            # Пингуем основной URL
-            response = requests.get(RENDER_URL, timeout=10)
-            print(f"✅ Авто-пинг: {response.status_code} - {time.strftime('%H:%M:%S')}")
-            
-            # Пингуем health endpoint
-            health_response = requests.get(f"{RENDER_URL}/bot-health", timeout=10)
-            print(f"✅ Health check: {health_response.status_code}")
-            
+            with urllib.request.urlopen(RENDER_URL, timeout=10) as response:
+                print(f"✅ Авто-пинг: {response.getcode()} - {time.strftime('%H:%M:%S')}")
         except Exception as e:
             print(f"❌ Ошибка авто-пинга: {e}")
-        
-        # Ждем 10 минут (600 секунд)
-        time.sleep(600)
+        time.sleep(300)  # 5 минут
 
-# 🔧 ENDPOINT ДЛЯ ПРАВИЛЬНОГО МОНИТОРИНГА
+# Функция запуска бота
+def run_bot():
+    if bot_app:
+        try:
+            bot_app.add_handler(CommandHandler("start", start))
+            print("🤖 Бот запускается...")
+            bot_app.run_polling(drop_pending_updates=True)
+        except Conflict:
+            print("❌ Конфликт! Ждем 30 секунд...")
+            time.sleep(30)
+            run_bot()  # Перезапускаем
+    else:
+        print("❌ Бот не может запуститься - нет токена")
+
 @app.route('/bot-health')
 def bot_health():
-    try:
-        # Проверяем, что бот подключен к Telegram API
-        bot_info = bot_app.bot.get_me()
-        return jsonify({
-            "status": "healthy",
-            "bot_name": bot_info.first_name,
-            "bot_username": bot_info.username,
-            "bot_id": bot_info.id,
-            "timestamp": time.time(),
-            "message": "✅ Бот полностью функционирует"
-        }), 200
-    except TelegramError as e:
-        return jsonify({
-            "status": "error", 
-            "error": str(e),
-            "timestamp": time.time(),
-            "message": "❌ Ошибка подключения к Telegram"
-        }), 500
+    if bot_app:
+        try:
+            bot_info = bot_app.bot.get_me()
+            return jsonify({
+                "status": "healthy",
+                "bot_name": bot_info.first_name,
+                "message": "✅ Бот работает"
+            }), 200
+        except Exception as e:
+            return jsonify({"status": "error", "error": str(e)}), 500
+    else:
+        return jsonify({"status": "error", "message": "Бот не инициализирован"}), 500
 
 @app.route('/')
 def home():
-    return """
-    <h1>🤖 Telegram Bot Active</h1>
-    <p>Бот работает и не спит!</p>
-    <p><a href="/bot-health">Проверить статус бота</a></p>
-    <p>Последнее обновление: {}</p>
-    """.format(time.strftime('%Y-%m-%d %H:%M:%S'))
-
-def run_bot():
-    print("Starting Telegram bot...")
-    try:
-        bot_app.run_polling(
-            drop_pending_updates=True,
-            allowed_updates=['message']
-        )
-    except Conflict:
-        print("❌ Conflict detected. Exiting...")
-        sys.exit(1)
+    return "🤖 Бот активен" if bot_app else "❌ Бот не запущен"
 
 if __name__ == "__main__":
-    if not BOT_TOKEN:
-        raise ValueError("❌ BOT_TOKEN не найден!")
+    print("=" * 50)
+    print("🚀 Запуск системы...")
     
-    print("✅ Токен загружен успешно")
+    if BOT_TOKEN:
+        print("✅ Токен загружен")
+        
+        # Запускаем авто-пинг
+        ping_thread = threading.Thread(target=auto_ping, daemon=True)
+        ping_thread.start()
+        print("🔔 Авто-пинг запущен")
+        
+        # Запускаем бота
+        bot_thread = threading.Thread(target=run_bot, daemon=True)
+        bot_thread.start()
+        print("🤖 Поток бота запущен")
+    else:
+        print("❌ ТОКЕН НЕ НАЙДЕН!")
     
-    # Запускаем авто-пинг в отдельном потоке
-    ping_thread = threading.Thread(target=auto_ping, daemon=True)
-    ping_thread.start()
-    print("🚀 Авто-пинг запущен (каждые 10 минут)")
-    
-    # Запускаем бот в отдельном потоке
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    print("🤖 Бот запущен")
-    
-    # Запускаем Flask сервер
+    # Запускаем Flask
     port = int(os.environ.get('PORT', 10000))
-    print(f"🌐 Flask сервер запускается на порту {port}")
+    print(f"🌐 Flask запускается на порту {port}")
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
