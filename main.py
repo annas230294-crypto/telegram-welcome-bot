@@ -1,10 +1,5 @@
 import os
-from flask import Flask
-import threading
 from telegram.ext import Application, CommandHandler
-import asyncio
-
-app = Flask(__name__)
 
 # Получаем токен
 def get_bot_token():
@@ -33,35 +28,12 @@ async def start(update, context):
 # Добавляем обработчик
 bot_app.add_handler(CommandHandler("start", start))
 
-def run_bot():
-    print("Starting Telegram bot...")
-    # Запускаем поллинг в event loop
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    bot_app.run_polling(drop_pending_updates=True)
-
-@app.route('/')
-def health_check():
-    return "✅ Bot is running and healthy!", 200
-
-@app.route('/health')
-def health():
-    """Простой endpoint для мониторинга"""
-    return "OK", 200
-
 if __name__ == "__main__":
-    # Проверяем токен
     if not BOT_TOKEN:
         raise ValueError("❌ BOT_TOKEN не найден!")
     
     print("✅ Токен загружен успешно")
+    print("🚀 Запускаем бота...")
     
-    # Запускаем бота в отдельном потоке
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.daemon = True
-    bot_thread.start()
-
-    # Запускаем Flask сервер на правильном порту
-    port = int(os.environ.get('PORT', 10000))
-    print(f"🚀 Starting server on port {port}")
-    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+    # Просто запускаем бота
+    bot_app.run_polling(drop_pending_updates=True)
