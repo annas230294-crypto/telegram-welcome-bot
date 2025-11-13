@@ -1,8 +1,11 @@
 import os
 import time
 import sys
+from flask import Flask, jsonify
 from telegram.ext import Application, CommandHandler
-from telegram.error import Conflict
+from telegram.error import Conflict, TelegramError
+
+app = Flask(__name__)
 
 # Получаем токен
 def get_bot_token():
@@ -48,24 +51,58 @@ async def start(update, context):
 # Добавляем обработчик
 bot_app.add_handler(CommandHandler("start", start))
 
-if __name__ == "__main__":
-    if not BOT_TOKEN:
-        raise ValueError("❌ BOT_TOKEN не найден!")
-    
-    print("✅ Токен загружен успешно")
-    
-    # Ждем 30 секунд
-    print("⏳ Ожидаем 30 секунд...")
-    time.sleep(30)
-    
-    print("🚀 Пытаемся запустить бота...")
-    
+# 🔧 СПЕЦИАЛЬНЫЙ ENDPOINT ДЛЯ МОНИТОРИНГА
+@app.route('/bot-health')
+def bot_health():
+    try:
+        # Проверяем, что бот подключен к Telegram API
+        bot_info = bot_app.bot.get_me()
+        return jsonify({
+            "status": "healthy",
+            "bot_name": bot_info.first_name,
+            "bot_username": bot_info.username,
+            "timestamp": time.time()
+        }), 200
+    except TelegramError as e:
+        return jsonify({
+            "status": "error", 
+            "error": str(e),
+            "timestamp": time.time()
+        }), 500
+    except Exception as e:
+        return jsonify({
+            "status": "error",
+            "error": f"Unexpected error: {str(e)}",
+            "timestamp": time.time()
+        }), 500
+
+@app.route('/')
+def health_check():
+    return "✅ Bot is running and healthy!", 200
+
+def run_bot():
+    print("Starting Telegram bot...")
     try:
         bot_app.run_polling(
             drop_pending_updates=True,
             allowed_updates=['message']
         )
     except Conflict:
-        print("❌ Другой экземпляр бота все еще работает. Завершаем этот...")
-        print("💡 Render автоматически перезапустит сервис через несколько секунд")
-        sys.exit(1)  # Принудительно завершаем процесс
+        print("❌ Conflict detected. Exiting...")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    if not BOT_TOKEN:
+        raise ValueError("❌ BOT_TOKEN не найден!")
+    
+    print("✅ Токен загружен успешно")
+    
+    # Запускаем бот в отдельном потоке
+    import threading
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    
+    # Запускаем Flask сервер
+    port = int(os.environ.get('PORT', 10000))
+    print(f"🚀 Starting server on port {port}")
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
