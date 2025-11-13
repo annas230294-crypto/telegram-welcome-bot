@@ -1,8 +1,14 @@
 import os
-from telegram.ext import Application, CommandHandler
+from telegram.ext import Updater, CommandHandler
 
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 
-app = Application.builder().token(BOT_TOKEN).build()
-app.add_handler(CommandHandler("start", lambda u,c: u.message.reply_text("Работает!")))
-app.run_polling()
+def start(update, context):
+    update.message.reply_text("Бот работает! ✅")
+
+updater = Updater(BOT_TOKEN)
+updater.dispatcher.add_handler(CommandHandler("start", start))
+
+print("Бот запущен!")
+updater.start_polling()
+updater.idle()
