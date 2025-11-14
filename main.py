@@ -1,9 +1,9 @@
 import os
-import asyncio
-from telegram.ext import Application, CommandHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler  # ← ДОБАВЬТЕ ЭТОТ ИМПОРТ
 
 print("=" * 50)
-print("🚀 ЗАПУСК БОТА (Python 3.13 Compatible)")
+print("🚀 ЗАПУСК БОТА С КНОПКАМИ")
 
 # Получаем токен
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -18,6 +18,14 @@ application = Application.builder().token(BOT_TOKEN).build()
 
 async def start(update, context):
     user_name = update.message.from_user.first_name
+    
+    # Создаем клавиатуру с кнопками
+    keyboard = [
+        [InlineKeyboardButton("📢 Подписаться на канал", url="https://t.me/code_and_beauty")],
+        [InlineKeyboardButton("✅ Я подписался", callback_data="subscribed")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+
     welcome_text = f"""🎨 <b>Привет, {user_name}!</b>
 
 Ты попал(а) в мир безграничного творчества с нейросетями! 
@@ -38,17 +46,34 @@ async def start(update, context):
 • Ежедневным порциям вдохновения
 • Эксклюзивным материалам
 
-⚡ <b>Преврати простой текст в цифровое искусство вместе со мной!</b>
+⚡ <b>Преврати простой текст в цифровое искусство вместе со мной!</b>"""
 
-✅ <b>Подпишись на канал и открой мир AI-творчества!</b>"""
+    await update.message.reply_text(
+        welcome_text, 
+        parse_mode='HTML',
+        reply_markup=reply_markup
+    )
+    print(f"✅ Отправлено приветствие с кнопками пользователю: {user_name}")
 
-    await update.message.reply_text(welcome_text, parse_mode='HTML')
-    print(f"✅ Отправлено приветствие пользователю: {user_name}")
+# Обработчик нажатия на кнопку "Я подписался"
+async def button_handler(update, context):
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data == "subscribed":
+        await query.message.reply_text(
+            "🎉 <b>Супер! Добро пожаловать в сообщество!</b>\n\n"
+            "Теперь ты получишь доступ к эксклюзивному контенту и сможешь "
+            "создавать потрясающие изображения вместе со мной!",
+            parse_mode='HTML'
+        )
+        print(f"✅ Пользователь {query.from_user.first_name} подтвердил подписку")
 
-# Добавляем обработчик
+# Добавляем обработчики
 application.add_handler(CommandHandler("start", start))
+application.add_handler(CallbackQueryHandler(button_handler))  # ← ДОБАВЬТЕ ЭТУ СТРОКУ
 
-print("✅ Бот настроен, запускаем поллинг...")
+print("✅ Бот с кнопками настроен, запускаем поллинг...")
 
 # Запускаем бота
 application.run_polling()
