@@ -15,7 +15,7 @@ TOKEN = "8311994813:AAENv4Ag2bUxsiP4_kdzJAXDsznD9rwTA3c"
 # ===== ЗАНИМАЕМ ПОРТ ДЛЯ RENDER =====
 def bind_port():
     """Просто занимаем порт для Render"""
-    port = int(os.environ.get('PORT', 8080))
+    port = int(os.environ.get('PORT', 10000))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(('0.0.0.0', port))
     sock.listen(1)
