@@ -55,7 +55,7 @@ def main():
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
-    print("Бот запускается с токеном...")
+    print("🟢 БОТ ЗАПУЩЕН! Ожидаем сообщения...")
     app.run_polling()
 
 if __name__ == "__main__":
