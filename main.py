@@ -1,19 +1,19 @@
 import os
-import time
+import asyncio
 import threading
 from telegram.ext import Application, CommandHandler
 
 print("=" * 50)
 print("🚀 ЗАПУСК БОТА")
 
-# Получаем токен ИЗ ПЕРЕМЕННЫХ ОКРУЖЕНИЯ (BOT_TOKEN)
+# Получаем токен
 def get_bot_token():
-    token = os.getenv('BOT_TOKEN')  # ← Ищем BOT_TOKEN, а не BOT_TOKEN_NEW
+    token = os.getenv('BOT_TOKEN')
     if token:
         print(f"✅ Токен получен: ***{token[-4:]}")
         return token
     else:
-        print("❌ Токен не найден в переменных окружения")
+        print("❌ Токен не найден")
         return None
 
 BOT_TOKEN = get_bot_token()
@@ -56,14 +56,21 @@ async def start(update, context):
 
 bot_app.add_handler(CommandHandler("start", start))
 
-# Запускаем бота в отдельном потоке
+# 🔧 ПРАВИЛЬНЫЙ ЗАПУСК БОТА С EVENT LOOP
 def run_bot():
     print("🤖 ЗАПУСКАЕМ ТЕЛЕГРАМ БОТА...")
+    
+    # Создаем новый event loop для этого потока
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
     try:
+        # Запускаем бота в этом event loop
         bot_app.run_polling(drop_pending_updates=True)
     except Exception as e:
         print(f"❌ Ошибка бота: {e}")
 
+# Запускаем бота в отдельном потоке
 bot_thread = threading.Thread(target=run_bot, daemon=True)
 bot_thread.start()
 
