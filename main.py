@@ -4,8 +4,13 @@ from threading import Thread
 import socket
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+import logging
 
-TOKEN = "8311994813:AAENv4Ag2bUxsip4_kdzJAXDsznD5"
+# Включаем подробное логирование
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+TOKEN = "8311994813:AAENv4Ag2bUxsiP4_kdzJAXDsznD9rwTA3c"
 
 # ===== ЗАНИМАЕМ ПОРТ ДЛЯ RENDER =====
 def bind_port():
@@ -70,11 +75,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Запуск бота
 def main():
-    app = Application.builder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
-    print("🤖 BOT ЗАПУЩЕН! Ожидаем сообщения...")
-    app.run_polling()
+    try:
+        print(f"🔧 Проверяем токен: {TOKEN[:10]}...")
+        app = Application.builder().token(TOKEN).build()
+        app.add_handler(CommandHandler("start", start))
+        app.add_handler(CallbackQueryHandler(button_handler))
+        print("🤖 BOT ЗАПУЩЕН! Ожидаем сообщения...")
+        app.run_polling()
+    except Exception as e:
+        print(f"❌ Ошибка: {e}")
+        print("🔍 Проверь токен в @BotFather")
 
 if __name__ == "__main__":
     main()
