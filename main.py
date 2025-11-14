@@ -1,8 +1,10 @@
 import os
+import time
+import threading
 from telegram.ext import Application, CommandHandler
 
 print("=" * 50)
-print("🚀 ЗАПУСК БОТА")
+print("🚀 ЗАПУСК БОТА - ОБХОД FLASK")
 
 # Получаем токен
 def get_bot_token():
@@ -45,5 +47,31 @@ async def start(update, context):
 
 bot_app.add_handler(CommandHandler("start", start))
 
-print("✅ Бот запускается...")
-bot_app.run_polling(drop_pending_updates=True)
+# 🔧 ЗАПУСКАЕМ БОТА В ОТДЕЛЬНОМ ПОТОКЕ СРАЗУ
+def run_bot():
+    print("🤖 ЗАПУСКАЕМ ТЕЛЕГРАМ БОТА...")
+    bot_app.run_polling(drop_pending_updates=True)
+
+# Запускаем бота сразу при импорте
+bot_thread = threading.Thread(target=run_bot, daemon=True)
+bot_thread.start()
+
+print("✅ Бот запущен в фоне!")
+
+# 🔧 ОБХОД: Создаем минимальный Flask чтобы Render был доволен
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "🤖 Бот работает"
+
+@app.route('/health')
+def health():
+    return "OK", 200
+
+# 🔧 ОБХОД: Запускаем Flask только формально
+if __name__ == "__main__":
+    port = int(os.environ.get('PORT', 10000))
+    print(f"🌐 Flask запускается на порту {port}")
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
