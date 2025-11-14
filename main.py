@@ -1,31 +1,29 @@
 import os
-import asyncio
-import threading
-from telegram.ext import Application, CommandHandler
+import logging
+from telegram.ext import Updater, CommandHandler
+
+# Включаем логирование
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 print("=" * 50)
-print("🚀 ЗАПУСК БОТА")
+print("🚀 ЗАПУСК БОТА (Stable Version)")
 
 # Получаем токен
-def get_bot_token():
-    token = os.getenv('BOT_TOKEN')
-    if token:
-        print(f"✅ Токен получен: ***{token[-4:]}")
-        return token
-    else:
-        print("❌ Токен не найден")
-        return None
-
-BOT_TOKEN = get_bot_token()
-
-if not BOT_TOKEN:
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+if BOT_TOKEN:
+    print(f"✅ Токен получен: ***{BOT_TOKEN[-4:]}")
+else:
     print("❌ ТОКЕН НЕ НАЙДЕН!")
     exit(1)
 
-# Создаем бота
-bot_app = Application.builder().token(BOT_TOKEN).build()
+# Создаем бота (старый стиль - более стабильный)
+updater = Updater(token=BOT_TOKEN, use_context=True)
+dispatcher = updater.dispatcher
 
-async def start(update, context):
+def start(update, context):
     user_name = update.message.from_user.first_name
     welcome_text = f"""🎨 <b>Привет, {user_name}!</b>
 
@@ -51,44 +49,18 @@ async def start(update, context):
 
 ✅ <b>Подпишись на канал и открой мир AI-творчества!</b>"""
 
-    await update.message.reply_text(welcome_text, parse_mode='HTML')
+    update.message.reply_text(welcome_text, parse_mode='HTML')
     print(f"✅ Отправлено приветствие пользователю: {user_name}")
 
-bot_app.add_handler(CommandHandler("start", start))
+# Добавляем обработчик
+start_handler = CommandHandler('start', start)
+dispatcher.add_handler(start_handler)
 
-# 🔧 ПРАВИЛЬНЫЙ ЗАПУСК БОТА С EVENT LOOP
-def run_bot():
-    print("🤖 ЗАПУСКАЕМ ТЕЛЕГРАМ БОТА...")
-    
-    # Создаем новый event loop для этого потока
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
-    try:
-        # Запускаем бота в этом event loop
-        bot_app.run_polling(drop_pending_updates=True)
-    except Exception as e:
-        print(f"❌ Ошибка бота: {e}")
+print("✅ Бот настроен, запускаем...")
 
-# Запускаем бота в отдельном потоке
-bot_thread = threading.Thread(target=run_bot, daemon=True)
-bot_thread.start()
+# Запускаем бота
+updater.start_polling()
+print("🤖 Бот запущен и слушает сообщения...")
 
-print("✅ Бот запущен в фоне!")
-
-# Минимальный Flask для Render
-from flask import Flask
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "🤖 Бот работает"
-
-@app.route('/health')
-def health():
-    return "OK", 200
-
-if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 10000))
-    print(f"🌐 Flask запускается на порту {port}")
-    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+# Бесконечный цикл чтобы бот не завершался
+updater.idle()
