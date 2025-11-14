@@ -4,40 +4,42 @@ from threading import Thread
 import socket
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
-import logging
-
-# Включаем подробное логирование
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 TOKEN = "8311994813:AAENv4Ag2bUxsiP4_kdzJAXDsznD9rwTA3c"
 
-# ===== ЗАНИМАЕМ ПОРТ ДЛЯ RENDER =====
-def bind_port():
-    """Просто занимаем порт для Render"""
+# ===== ПРОСТО ЗАНИМАЕМ ПОРТ =====
+def occupy_port():
+    """Просто занимаем порт без веб-сервера"""
     port = int(os.environ.get('PORT', 10000))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(('0.0.0.0', port))
     sock.listen(1)
-    print(f"✅ Port {port} is bound for Render")
-    # Сокет остается открытым, но не обрабатывает запросы
+    print(f"✅ Port {port} is occupied")
+    
+    # Просто висим, не обрабатывая запросы
+    while True:
+        try:
+            client, addr = sock.accept()
+            client.send(b'HTTP/1.1 200 OK\r\n\r\nBot is running')
+            client.close()
+        except:
+            continue
 
 # Запускаем в фоне
-port_thread = Thread(target=bind_port, daemon=True)
+port_thread = Thread(target=occupy_port, daemon=True)
 port_thread.start()
-# ===== КОНЕЦ БЛОКА ДЛЯ ПОРТА =====
+# ===== КОНЕЦ =====
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_name = update.message.from_user.first_name or "Аноним"
 
-    # Создаем кнопки
     keyboard = [
         [InlineKeyboardButton("🔗 ПОДПИСАТЬСЯ НА КАНАЛ", url="https://t.me/code_and_beauty")],
         [InlineKeyboardButton("✅ Я ПОДПИСАН(а)!", callback_data="subscribed")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
 
-    # Текст сообщения (полная версия со всеми смайликами)
     message_text = f"""Привет, {user_name}! 💫
 
 Ты попал(а) в мир безграничного творчества с нейросетями! 
@@ -64,7 +66,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(message_text, reply_markup=reply_markup)
 
-# Обработчик кнопки
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     user_name = query.from_user.first_name or "Аноним"
@@ -73,18 +74,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.data == "subscribed":
         await query.message.reply_text(f"Отлично, {user_name}! 🎉\n\nТеперь ты получишь доступ ко всем материалам канала! 📚✨")
 
-# Запуск бота
 def main():
-    try:
-        print(f"🔧 Проверяем токен: {TOKEN[:10]}...")
-        app = Application.builder().token(TOKEN).build()
-        app.add_handler(CommandHandler("start", start))
-        app.add_handler(CallbackQueryHandler(button_handler))
-        print("🤖 BOT ЗАПУЩЕН! Ожидаем сообщения...")
-        app.run_polling()
-    except Exception as e:
-        print(f"❌ Ошибка: {e}")
-        print("🔍 Проверь токен в @BotFather")
+    app = Application.builder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
+    print("🤖 BOT ЗАПУЩЕН! Ожидаем сообщения...")
+    app.run_polling()
 
 if __name__ == "__main__":
     main()
