@@ -1,15 +1,9 @@
 import os
-import logging
-from telegram.ext import Updater, CommandHandler
-
-# Включаем логирование
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+import asyncio
+from telegram.ext import Application, CommandHandler
 
 print("=" * 50)
-print("🚀 ЗАПУСК БОТА (Stable Version)")
+print("🚀 ЗАПУСК БОТА (Python 3.13 Compatible)")
 
 # Получаем токен
 BOT_TOKEN = os.getenv('BOT_TOKEN')
@@ -19,11 +13,10 @@ else:
     print("❌ ТОКЕН НЕ НАЙДЕН!")
     exit(1)
 
-# Создаем бота (старый стиль - более стабильный)
-updater = Updater(token=BOT_TOKEN, use_context=True)
-dispatcher = updater.dispatcher
+# Создаем бота
+application = Application.builder().token(BOT_TOKEN).build()
 
-def start(update, context):
+async def start(update, context):
     user_name = update.message.from_user.first_name
     welcome_text = f"""🎨 <b>Привет, {user_name}!</b>
 
@@ -49,18 +42,13 @@ def start(update, context):
 
 ✅ <b>Подпишись на канал и открой мир AI-творчества!</b>"""
 
-    update.message.reply_text(welcome_text, parse_mode='HTML')
+    await update.message.reply_text(welcome_text, parse_mode='HTML')
     print(f"✅ Отправлено приветствие пользователю: {user_name}")
 
 # Добавляем обработчик
-start_handler = CommandHandler('start', start)
-dispatcher.add_handler(start_handler)
+application.add_handler(CommandHandler("start", start))
 
-print("✅ Бот настроен, запускаем...")
+print("✅ Бот настроен, запускаем поллинг...")
 
 # Запускаем бота
-updater.start_polling()
-print("🤖 Бот запущен и слушает сообщения...")
-
-# Бесконечный цикл чтобы бот не завершался
-updater.idle()
+application.run_polling()
