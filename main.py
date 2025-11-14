@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackContext, CallbackQueryHandler
 
-TOKEN = #8311994813:AAENv4Ag2bUxsiP4_kdzJAXDsznD9rwTA3c".  # ← ВСТАВЬ СВОЙ ТОКЕН ЗДЕСЬ
+TOKEN = "8311994813:AAENv4Ag2bUxsiP4_kdzJAXDsznD9rwTA3c"
 
 async def start(update: Update, context: CallbackContext) -> None:
     user_name = update.message.from_user.first_name or "друг"
@@ -55,6 +55,7 @@ def main():
     app = Application.builder().token(TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
+    print("Бот запускается с токеном...")
     app.run_polling()
 
 if __name__ == "__main__":
