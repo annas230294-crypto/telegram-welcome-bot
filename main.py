@@ -1,11 +1,9 @@
 import os
 import time
-from flask import Flask
-from telegram.ext import Application, CommandHandler
 import threading
+from telegram.ext import Application, CommandHandler
 
-app = Flask(__name__)
-
+# Получаем токен
 def get_bot_token():
     try:
         with open('/etc/secrets/BOT_TOKEN_NEW', 'r') as f:
@@ -15,30 +13,83 @@ def get_bot_token():
 
 BOT_TOKEN = get_bot_token()
 
-if BOT_TOKEN:
-    bot_app = Application.builder().token(BOT_TOKEN).build()
+print("=" * 50)
+print("🚀 ЗАПУСК ТЕЛЕГРАМ БОТА")
+print(f"🔑 Токен: {'***' + BOT_TOKEN[-4:] if BOT_TOKEN else 'НЕ НАЙДЕН'}")
 
-    async def start(update, context):
-        user_name = update.message.from_user.first_name
-        welcome_text = f"""🎨 <b>Привет, {user_name}!</b>"""
-        # ... ваш текст ...
-        await update.message.reply_text(welcome_text, parse_mode='HTML')
-        print(f"✅ Отправлено: {user_name}")
+if not BOT_TOKEN:
+    print("❌ КРИТИЧЕСКАЯ ОШИБКА: Токен не найден!")
+    exit(1)
 
-    bot_app.add_handler(CommandHandler("start", start))
+# Создаем и настраиваем бота
+bot_app = Application.builder().token(BOT_TOKEN).build()
 
-    def run_bot():
-        print("🤖 Бот запускается...")
-        bot_app.run_polling(drop_pending_updates=True)
+async def start(update, context):
+    user_name = update.message.from_user.first_name
+    welcome_text = f"""🎨 <b>Привет, {user_name}!</b>
 
-    # Запускаем бота при импорте
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
+Ты попал(а) в мир безграничного творчества с нейросетями! 
+
+🤖 <b>Мой канал:</b> @code_and_beauty
+
+✨ <b>Что тебя ждет внутри:</b>
+🔥 Готовые, бесплатные, кастомные промты для самых популярных нейросетей
+🚀 Бустерные промты для твоих шедевров в один клик
+💡 Трендовые стили: от аниме до гиперреализма
+🎯 Рабочие связки для сложных сцен и персонажей
+📈 Обзоры новых нейросетей и их возможностей
+👥 Сообщество единомышленников
+
+💫 <b>Подпишись и получи доступ к:</b>
+• Библиотеке из 500+ готовых промтов
+• Гайдам по созданию уникальных изображений
+• Ежедневным порциям вдохновения
+• Эксклюзивным материалам
+
+⚡ <b>Преврати простой текст в цифровое искусство вместе со мной!</b>
+
+✅ <b>Подпишись на канал и открой мир AI-творчества!</b>"""
+
+    await update.message.reply_text(welcome_text, parse_mode='HTML')
+    print(f"✅ Отправлено приветствие пользователю: {user_name}")
+
+# Добавляем обработчик
+bot_app.add_handler(CommandHandler("start", start))
+
+print("✅ Бот настроен, запускаем поллинг...")
+
+# 🔧 ОБХОДНОЙ ПУНКТ: Запускаем бота сразу при импорте
+def run_bot():
+    print("🤖 ЗАПУСКАЕМ ТЕЛЕГРАМ БОТА...")
+    try:
+        bot_app.run_polling(
+            drop_pending_updates=True,
+            allowed_updates=['message']
+        )
+    except Exception as e:
+        print(f"❌ Ошибка бота: {e}")
+        print("🔄 Перезапуск через 30 секунд...")
+        time.sleep(30)
+        run_bot()
+
+# Запускаем бота в фоновом потоке СРАЗУ
+bot_thread = threading.Thread(target=run_bot, daemon=True)
+bot_thread.start()
+
+# 🔧 ОБХОДНОЙ ПУНКТ 2: Создаем минимальный Flask для Render
+from flask import Flask
+app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Бот работает"
+    return "🤖 Telegram Bot is running in background"
 
+@app.route('/health')
+def health():
+    return "OK", 200
+
+# 🔧 ОБХОДНОЙ ПУНКТ 3: Запускаем Flask только если это главный файл
 if __name__ == "__main__":
     port = int(os.environ.get('PORT', 10000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    print(f"🌐 Flask запускается на порту {port} (только для Render)")
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
