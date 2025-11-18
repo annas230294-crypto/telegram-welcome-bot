@@ -3,7 +3,7 @@ import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-TOKEN = "8311994813:AAENv4Ag2bUxsip4_kdzJAXDsznD9rwTA3c"
+TOKEN = "8311994813:AAENv4Ag2bUxsiP4_kdzJAXDsznD9rwTA3c"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_name = update.message.from_user.first_name or "Аноним"
