@@ -5,7 +5,7 @@ import socket
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-TOKEN = "8311994813:AAENv4Ag2bUxsip4_kdzJAXDsznD9rwTA3c"
+TOKEN = "8311994813:AAENv4Ag2bUxsiP4_kdzJAXDsznD9rwTA3c"
 
 # ==== ЗАНИМАЕМ ПОРТ ДЛЯ RENDER ====
 def bind_port():
