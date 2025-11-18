@@ -9,13 +9,11 @@ TOKEN = "8311994813:AAENv4Ag2bUxsiP4_kdzJAXDsznD9rwTA3c"
 
 # ==== ЗАНИМАЕМ ПОРТ ДЛЯ RENDER ====
 def bind_port():
-    """Прого занимаем порт для Render"""
     port = int(os.environ.get('PORT', 8080))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(('0.0.0.0', port))
     sock.listen(1)
     print(f"📄 Port {port} is bound for Render")
-    # Сокет остается открытым, но не обрабатывает запросы
     while True:
         try:
             client, addr = sock.accept()
@@ -24,7 +22,6 @@ def bind_port():
         except:
             continue
 
-# Запускаем в фоне
 port_thread = Thread(target=bind_port, daemon=True)
 port_thread.start()
 # ==== КОНЕЦ БЛОКА ДЛЯ ПОРТА ====
